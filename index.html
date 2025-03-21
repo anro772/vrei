@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O întrebare specială</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #ffecf1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(255, 105, 180, 0.2);
+            position: relative;
+            max-width: 85%;
+            width: 100%;
+            max-width: 450px;
+            z-index: 10;
+        }
+
+        h1 {
+            color: #ff69b4;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            min-width: 120px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-yes {
+            background-color: #ff69b4;
+            color: white;
+        }
+
+        .btn-no {
+            background-color: #ccc;
+            color: #666;
+        }
+
+        .btn-yes:hover,
+        .btn-yes:active {
+            transform: scale(1.05);
+            background-color: #ff5ca8;
+        }
+
+        .btn-no:hover,
+        .btn-no:active {
+            transform: scale(0.98);
+        }
+
+        .hearts {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .heart {
+            position: absolute;
+            font-size: 25px;
+            color: #ff69b4;
+            opacity: 0;
+            animation: fall 6s linear forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .floating-hearts {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* Adding a cute image at the bottom */
+        .cute-image {
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            width: 100px;
+            height: 100px;
+            background: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ff69b4"><path d="M50,30 C50,30 65,5 85,15 C105,25 95,55 75,65 C55,75 50,70 50,70 C50,70 45,75 25,65 C5,55 -5,25 15,15 C35,5 50,30 50,30 Z"/></svg>') no-repeat;
+            background-size: contain;
+            opacity: 0.5;
+            transform: rotate(-15deg);
+        }
+
+        /* Confetti styles */
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background-color: #f2d74e;
+            opacity: 0.8;
+            z-index: 100;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.6rem;
+            }
+
+            .btn {
+                padding: 15px 25px;
+                font-size: 1.1rem;
+                min-width: 100px;
+            }
+
+            .cute-image {
+                width: 80px;
+                height: 80px;
+            }
+
+            .container {
+                padding: 25px 15px;
+            }
+        }
+
+        /* Success message */
+        .success-message {
+            font-size: 1.3rem;
+            color: #ff69b4;
+            margin-top: 30px;
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="floating-hearts" id="floatingHearts"></div>
+
+    <div class="container">
+        <h1>Vrei sa iesim intr-o zi???</h1>
+        <div class="buttons">
+            <button id="yesBtn" class="btn btn-yes">DA</button>
+            <button id="noBtn" class="btn btn-no">nu...</button>
+        </div>
+        <div class="cute-image"></div>
+    </div>
+
+    <script>
+        // Variables to track button sizes
+        let noButtonSize = 100;
+        let yesButtonSize = 100;
+        let clickCount = 0;
+
+        // Get DOM elements
+        const yesBtn = document.getElementById('yesBtn');
+        const noBtn = document.getElementById('noBtn');
+        const floatingHearts = document.getElementById('floatingHearts');
+        const container = document.querySelector('.container');
+
+        // Get screen dimensions (accounting for mobile)
+        function getScreenDimensions() {
+            return {
+                width: window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth,
+                height: window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
+            };
+        }
+
+        // Add floating hearts animation
+        function addFloatingHearts() {
+            // Reduce the number of hearts on mobile
+            const isMobile = window.innerWidth < 768;
+            const heartCount = isMobile ? 5 : 10;
+
+            for (let i = 0; i < heartCount; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.classList.add('heart');
+                    heart.innerHTML = '❤️';
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    heart.style.animationDuration = (Math.random() * 6 + 3) + 's';
+                    heart.style.opacity = Math.random() * 0.7 + 0.3;
+                    heart.style.fontSize = (Math.random() * 20 + 10) + 'px';
+                    floatingHearts.appendChild(heart);
+
+                    // Remove the heart after animation
+                    setTimeout(() => {
+                        heart.remove();
+                    }, 8000);
+                }, i * 300);
+            }
+        }
+
+        // Custom confetti function since the CDN might not be reliable
+        function createConfetti() {
+            const confettiCount = window.innerWidth < 768 ? 100 : 200;
+            const colors = ['#ff69b4', '#ff5ca8', '#ffb6c1', '#ffc0cb', '#fff0f5', '#f2d74e', '#cedc39', '#95c3de'];
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+                // Randomize confetti pieces
+                const size = Math.random() * 10 + 5;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size * 1.5}px`;
+
+                document.body.appendChild(confetti);
+
+                // Animate confetti
+                const animationDuration = Math.random() * 3 + 2;
+                const xDistance = (Math.random() - 0.5) * 300;
+
+                setTimeout(() => {
+                    confetti.style.transition = `all ${animationDuration}s ease-out`;
+                    confetti.style.transform = `translateX(${xDistance}px) translateY(${window.innerHeight}px) rotate(${Math.random() * 720}deg)`;
+                    confetti.style.opacity = '0';
+                }, 10);
+
+                // Clean up
+                setTimeout(() => {
+                    confetti.remove();
+                }, animationDuration * 1000);
+            }
+        }
+
+        // Add initial floating hearts
+        addFloatingHearts();
+
+        // Add fewer hearts on mobile
+        const heartInterval = window.innerWidth < 768 ? 5000 : 3000;
+        setInterval(addFloatingHearts, heartInterval);
+
+        // When "nu..." button is clicked
+        noBtn.addEventListener('click', function (e) {
+            e.preventDefault(); // Prevent any default behavior
+            clickCount++;
+
+            // Decrease size of "nu..." button
+            noButtonSize = Math.max(noButtonSize - 20, 0);
+            noBtn.style.padding = (15 * noButtonSize / 100) + 'px ' + (30 * noButtonSize / 100) + 'px';
+            noBtn.style.fontSize = (1.2 * noButtonSize / 100) + 'rem';
+
+            // Increase size of "DA" button
+            yesButtonSize = Math.min(yesButtonSize + 15, 200);
+            yesBtn.style.padding = (15 * yesButtonSize / 100) + 'px ' + (30 * yesButtonSize / 100) + 'px';
+            yesBtn.style.fontSize = (1.2 * yesButtonSize / 100) + 'rem';
+
+            // Get current screen dimensions
+            const screen = getScreenDimensions();
+
+            // Button dimensions
+            const buttonWidth = noBtn.offsetWidth;
+            const buttonHeight = noBtn.offsetHeight;
+
+            // Safe margins to keep button fully on screen
+            const safeMarginX = buttonWidth + 10;
+            const safeMarginY = buttonHeight + 10;
+
+            // Calculate safe area for positioning
+            const maxX = screen.width - safeMarginX;
+            const maxY = screen.height - safeMarginY;
+            const minX = 10;
+            const minY = 10;
+
+            // Generate a position within the safe area
+            const randomX = Math.floor(Math.random() * (maxX - minX)) + minX;
+            const randomY = Math.floor(Math.random() * (maxY - minY)) + minY;
+
+            // Position the button
+            noBtn.style.position = 'fixed';
+            noBtn.style.left = randomX + 'px';
+            noBtn.style.top = randomY + 'px';
+            noBtn.style.zIndex = '100';
+
+            // Hide the "nu..." button after several clicks
+            if (clickCount >= 5) {
+                noBtn.style.opacity = '0';
+                setTimeout(() => {
+                    noBtn.style.display = 'none';
+                }, 300);
+            }
+        });
+
+        // When "DA" button is clicked
+        yesBtn.addEventListener('click', function (e) {
+            e.preventDefault(); // Prevent any default behavior
+
+            // Remove "nu..." button
+            noBtn.style.display = 'none';
+
+            // Update message
+            document.querySelector('h1').textContent = 'Yayyy! ❤️';
+
+            // Launch our custom confetti
+            createConfetti();
+
+            // Create heart explosion (fewer hearts on mobile)
+            const heartCount = window.innerWidth < 768 ? 20 : 40;
+            for (let i = 0; i < heartCount; i++) {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.innerHTML = '❤️';
+                heart.style.left = '50%';
+                heart.style.top = '50%';
+                heart.style.fontSize = (Math.random() * 30 + 10) + 'px';
+
+                // Random direction
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 100 + 50;
+                const duration = Math.random() * 3 + 2;
+
+                heart.style.animation = 'none';
+                heart.style.opacity = '1';
+                heart.style.transform = 'translate(-50%, -50%)';
+
+                document.body.appendChild(heart);
+
+                setTimeout(() => {
+                    heart.style.transition = `all ${duration}s ease-out`;
+                    heart.style.transform = `translate(
+                        calc(-50% + ${Math.cos(angle) * distance}px), 
+                        calc(-50% + ${Math.sin(angle) * distance}px)
+                    ) rotate(${Math.random() * 360}deg)`;
+                    heart.style.opacity = '0';
+                }, 10);
+
+                setTimeout(() => {
+                    heart.remove();
+                }, duration * 1000);
+            }
+
+            // Hide the button after celebration
+            setTimeout(() => {
+                yesBtn.style.display = 'none';
+
+                // Add a cute message
+                const message = document.createElement('div');
+                message.className = 'success-message';
+                message.textContent = "Iti voi scrie pentru mesaj! ❤️";
+                container.appendChild(message);
+            }, 2000);
+        });
+    </script>
+</body>
+
+</html>
